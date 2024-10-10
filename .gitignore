@@ -1,0 +1,7 @@
+__pycache__
+.mypy_cache
+csv
+venv
+application.log
+mypy.ini
+nfc_records.db
