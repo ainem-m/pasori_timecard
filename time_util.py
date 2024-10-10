@@ -1,9 +1,8 @@
 from datetime import datetime
-from typing import Final
 import pytz
 
 
-TIME_FORMAT: Final[str] = "%Y-%m-%d %H:%M:%S"
+TIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 TZ = pytz.timezone("Asia/Tokyo")
 
 
