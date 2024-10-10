@@ -249,7 +249,3 @@ class AttendanceRecord(Base):
 
 if __name__ == "__main__":
     Base.metadata.create_all(engine)
-    test = Employee.get_by_name("テスト")
-    assert test is not None
-    print(test.ic_card_list())
-    print(AttendanceRecord.get_last_record(test))
