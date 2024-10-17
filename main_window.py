@@ -8,6 +8,7 @@ from punch_dialog import PunchDialog
 from nfc_reader_QThread import NfcReader, NfcReaderMock
 import db_alchemy
 import time_util
+from register_dialog import EmployeeSelectionDialog
 
 
 class TimeDisplay(QLabel):
@@ -91,8 +92,13 @@ class MainWindow(QMainWindow):
             dialog = PunchDialog(ic_card_id, punch_time)
             dialog.exec()
         else:
-            msg = AutoCloseMessageBox(title="エラー", text="登録されていないカードです")
-            msg.exec()
+            dialog = EmployeeSelectionDialog()
+            dialog.employee_selected.connect(
+                lambda emp: db_alchemy.IC_Card.assign(ic_card_id, emp)
+            )
+            dialog.exec()
+            # msg = AutoCloseMessageBox(title="エラー", text="登録されていないカードです")
+            # msg.exec()
         # nfc_readerを再起動する
         self.nfc_reader.wait()
         self.nfc_reader.start()
@@ -104,7 +110,14 @@ class MainWindow(QMainWindow):
     def mock_card_read_error(self):
         """デバッグ用: ボタンを押すと仮想カードIDを読み込む"""
         # 仮のICカードIDと現在の時刻を使ってスロットを呼び出し
-        mock_ic_card_id = "DEBUG_CARD_001"  # 未登録
+        card_num = 0
+        mock_ic_card_id = f"DEBUG_CARD_{card_num:03d}"
+        card_list = list(
+            map(lambda card: card.ic_card_number, db_alchemy.IC_Card.get_all())
+        )
+        while mock_ic_card_id in card_list:
+            mock_ic_card_id = f"DEBUG_CARD_{card_num:03d}"
+            card_num += 1
         self.update_label(mock_ic_card_id)
 
     def mock_card_read(self):
