@@ -8,9 +8,10 @@ from sqlalchemy.orm import (
 )
 from datetime import datetime
 import enum
-from config import DATABASE_PATH, DEBUG
+from config import DATABASE_PATH, DEBUG, EMPLOYEE_LIST
 from typing import Any, Optional
 import time_util
+import os
 
 
 engine = create_engine(f"sqlite:///{DATABASE_PATH}", echo=False)
@@ -248,4 +249,23 @@ class AttendanceRecord(Base):
 
 
 if __name__ == "__main__":
+    # データベースの初期化
     Base.metadata.create_all(engine)
+
+    # EMPLOYEE_LISTに書かれている従業員名が登録されていなかったら登録する
+    if os.path.exists(EMPLOYEE_LIST):
+        employee_names: list[str] = list(map(lambda x: x.name, Employee.get_all()))
+        with open(EMPLOYEE_LIST, "r+", encoding="utf-8") as file:
+            for line in file:
+                employee_name = line.strip()  # 改行を削除して従業員名を取得
+                Employee.add(
+                    employee_name
+                )  # もし従業員がすでに存在した場合のエラーハンドリングはEmployee側に任せる
+            # EMPLOYEE_LISTに従業員名を同期する
+            # データベースの従業員リストに同期するため、EMPLOYEE_LISTを上書き更新
+            file.seek(0)  # ファイルの先頭に戻る
+            file.truncate()  # ファイル内容を削除
+            # データベースに存在する従業員名をすべて書き込む
+            for employee in Employee.get_all():
+                file.write(f"{employee.name}\n")
+            print("従業員リストをファイルに同期しました。")

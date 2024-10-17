@@ -6,6 +6,7 @@ DEBUG: bool = True
 
 # SQLiteデータベースの設定
 DATABASE_PATH = "nfc_records.db"  # データベースファイルのパス
+EMPLOYEE_LIST = "employee_list.txt"
 
 # GUIの設定
 WINDOW_SIZE: tuple[int, int] = (480, 400)  # ウィンドウのサイズ
