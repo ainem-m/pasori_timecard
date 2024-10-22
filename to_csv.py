@@ -8,6 +8,7 @@ from collections import defaultdict
 from config import DATABASE_PATH
 from typing import Optional
 from pathlib import Path
+import sys
 
 # SQLiteエンジンを作成し、データベースに接続
 engine = create_engine(f"sqlite:///{DATABASE_PATH}")
@@ -178,9 +179,34 @@ def export_employee_attendance_to_csv(year: int, month: int):
                     writer.writerow(row)
 
             print(
-                f"{employee.name} の勤怠データを {employee.name}.csv に書き出しました。"
+                f"{employee.name} の勤怠データを {output_dir}/{employee.name}.csv に書き出しました。"
             )
 
 
-# 実行
-export_employee_attendance_to_csv(2024, 10)
+def parse_date_string(date_str: str) -> tuple[int, int]:
+    # Detect if it's separated by '/' or '-'
+    separator = "/" if "/" in date_str else "-"
+
+    # Split by the separator
+    year_str, month_str = date_str.split(separator)
+
+    # Process year
+    if len(year_str) == 2:
+        year = 2000 + int(year_str) if int(year_str) < 50 else 1900 + int(year_str)
+    else:
+        year = int(year_str)
+
+    # Process month
+    month = int(month_str)
+
+    return (year, month)
+
+
+if __name__ == "__main__":
+    input_str: str
+    if len(sys.argv) != 2:
+        input_str = input("年と月を入力 例: 2024/10 ->")
+    else:
+        input_str = sys.argv[1]
+    parse_date_string(input_str)
+    export_employee_attendance_to_csv(*parse_date_string(input_str))
