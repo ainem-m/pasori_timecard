@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Enum, create_engine
+from sqlalchemy import ForeignKey, create_engine, desc
 from sqlalchemy.orm import (
     DeclarativeBase,
     mapped_column,
@@ -217,7 +217,7 @@ class AttendanceRecord(Base):
             return (
                 session.query(cls)
                 .filter_by(employee_id=employee.employee_id)
-                .order_by(cls.record_time)
+                .order_by(desc(cls.record_time))
                 .first()
             )
 
