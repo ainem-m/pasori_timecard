@@ -9,6 +9,7 @@ from config import DATABASE_PATH
 from typing import Optional
 from pathlib import Path
 import sys
+import re
 
 # SQLiteエンジンを作成し、データベースに接続
 engine = create_engine(f"sqlite:///{DATABASE_PATH}")
@@ -183,12 +184,22 @@ def export_employee_attendance_to_csv(year: int, month: int):
             )
 
 
-def parse_date_string(date_str: str) -> tuple[int, int]:
+def parse_date_string(date_str):
+    # Validate input format using regex (allows YYYY/MM, YY/MM, YYYY/M, YY/M, etc.)
+    if not re.match(r"^\d{2,4}[-/]\d{1,2}$", date_str):
+        raise ValueError("以下の形式で入力してください: YYYY/MM, YY/MM, YYYY/M, YY/M")
+
     # Detect if it's separated by '/' or '-'
     separator = "/" if "/" in date_str else "-"
 
     # Split by the separator
     year_str, month_str = date_str.split(separator)
+
+    # Validate year and month ranges
+    if not (1 <= int(month_str) <= 12):
+        raise ValueError(
+            "1月から12月の範囲で入力してください フォーマット: YYYY/MM, YY/MM, YYYY/M, YY/M"
+        )
 
     # Process year
     if len(year_str) == 2:
@@ -205,7 +216,7 @@ def parse_date_string(date_str: str) -> tuple[int, int]:
 if __name__ == "__main__":
     input_str: str
     if len(sys.argv) != 2:
-        input_str = input("年と月を入力 例: 2024/10 ->")
+        input_str = input("年と月を入力 例: 2024/08, 2024/8, 24/08, 24/8 ->")
     else:
         input_str = sys.argv[1]
     parse_date_string(input_str)
