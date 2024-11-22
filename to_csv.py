@@ -18,6 +18,76 @@ Session = sessionmaker(bind=engine)
 BLANK = "--:--"  # 使用していないところの時刻表示
 LOST = "##:##"  # 押し忘れの時刻表示
 DIR_NAME = "csv"
+HEADER = [
+    "日付",
+    "出勤1",
+    "退勤1",
+    "出勤2",
+    "退勤2",
+    "出勤3",
+    "退勤3",
+    "出勤4",
+    "退勤4",
+    "勤務時間",
+    "押し忘れ",
+]
+BLANK_LINE = [
+    "--/--(---)",
+    BLANK,
+    BLANK,
+    BLANK,
+    BLANK,
+    BLANK,
+    BLANK,
+    BLANK,
+    BLANK,
+    BLANK,
+    "-",
+]
+
+
+def calc_duration(start: datetime, stop: datetime) -> int:
+    assert start < stop
+    hours = stop.hour - start.hour
+    minutes = stop.minute - start.minute
+    total_minutes = hours * 60 + minutes
+    return total_minutes
+
+
+def make_pairs(punches):
+    """
+    打刻データをペアリングする関数。
+
+    Args:
+        punches (list[tuple]): 打刻データ [(type, time), ...]。
+                               type は "IN" または "OUT"。
+    Returns:
+        tuple: (punch_pairs, has_lost)
+               punch_pairs: [(IN_time, OUT_time), ...]
+               has_lost: True ifペアリングに失敗した打刻がある場合。
+    """
+    total_work_duration = 0
+    has_lost = False
+    punch_pairs = []
+
+    punches.reverse()  # リストを逆順にして処理しやすくする
+
+    while punches:
+        punch_type, punch_time = punches.pop()
+
+        if punch_type.name == "IN":  # "IN"の場合
+            if punches and punches[-1][0].name == "OUT":  # 次が"OUT"ならペアにする
+                _, next_time = punches.pop()
+                punch_pairs.append((punch_time, next_time))
+                total_work_duration += calc_duration(punch_time, next_time)
+            else:  # 次が"OUT"でない、または打刻がない場合
+                punch_pairs.append((punch_time, None))
+                has_lost = True
+        elif punch_type.name == "OUT":  # "OUT"のみの場合
+            punch_pairs.append((None, punch_time))
+            has_lost = True
+
+    return punch_pairs, has_lost, total_work_duration
 
 
 def export_employee_attendance_to_csv(year: int, month: int):
@@ -30,11 +100,13 @@ def export_employee_attendance_to_csv(year: int, month: int):
     one_day = timedelta(days=1)
     day = 16
     now = datetime(year=year, month=month - 1, day=day)
+    start_date = now
     period: list[str] = [now.date().strftime("%m/%d(%a)")]
     while day != 15:
         period.append(now.date().strftime("%m/%d(%a)"))
         now += one_day
         day = now.day
+    end_date = now
     """従業員ごとの勤怠記録をCSVに出力する"""
     with Session() as session:
         # 全従業員を取得
@@ -45,10 +117,13 @@ def export_employee_attendance_to_csv(year: int, month: int):
             records = (
                 session.query(AttendanceRecord)
                 .filter_by(employee_id=employee.employee_id)
+                .filter(
+                    start_date <= AttendanceRecord.record_time,
+                    AttendanceRecord.record_time <= end_date,
+                )
                 .order_by(AttendanceRecord.record_time)
                 .all()
             )
-
             if not records:
                 print(f"{employee.name} の勤怠記録が見つかりませんでした。")
                 continue
@@ -74,84 +149,19 @@ def export_employee_attendance_to_csv(year: int, month: int):
                 writer = csv.writer(csv_file)
 
                 # ヘッダー行を書き込む
-                header = [
-                    "日付",
-                    "出勤1",
-                    "退勤1",
-                    "出勤2",
-                    "退勤2",
-                    "出勤3",
-                    "退勤3",
-                    "出勤4",
-                    "退勤4",
-                    "勤務時間",
-                    "押し忘れ",
-                ]
-                writer.writerow(header)
+
+                writer.writerow(HEADER)
 
                 # 日付ごとに出勤・退勤をペアにして書き込む
                 for date in period:
                     punches = daily_attendance[date]
                     if len(punches) == 0:
-                        writer.writerow(
-                            [
-                                "--/--(---)",
-                                BLANK,
-                                BLANK,
-                                BLANK,
-                                BLANK,
-                                BLANK,
-                                BLANK,
-                                BLANK,
-                                BLANK,
-                                BLANK,
-                                "-",
-                            ]
-                        )
+                        writer.writerow(BLANK_LINE)
                         continue
-
-                    def calc_duration(start: datetime, stop: datetime) -> int:
-                        assert start < stop
-                        hours = stop.hour - start.hour
-                        minutes = stop.minute - start.minute
-                        total_minutes = hours * 60 + minutes
-                        return total_minutes
 
                     row = [date]
 
-                    # 勤務時間の合計を計算するための変数
-                    total_work_duration = 0
-
-                    punch_pairs: list[tuple[Optional[datetime], Optional[datetime]]] = (
-                        []
-                    )
-                    punch_in_time = None
-                    has_lost = False
-
-                    for punch_type, punch_time in punches:
-                        if punch_type.name == "IN":
-                            # 出勤を記録
-                            if punch_in_time is None:
-                                punch_in_time = punch_time
-                            else:
-                                # 退勤が押されてなかった場合
-                                punch_pairs.append((punch_in_time, None))
-                                has_lost = True
-                                punch_in_time = None
-                        elif punch_type.name == "OUT":
-                            if punch_in_time is not None:
-                                punch_pairs.append((punch_in_time, punch_time))
-                                total_work_duration += calc_duration(
-                                    start=punch_in_time, stop=punch_time
-                                )
-                                punch_in_time = None
-                            else:
-                                # 出勤が押されていなかった場合
-                                punch_pairs.append((None, punch_time))
-                                has_lost = True
-                    if punch_in_time is not None:
-                        punch_pairs.append((punch_in_time, None))
-                        has_lost = True
+                    punch_pairs, has_lost, total_work_duration = make_pairs(punches)
 
                     if punch_pairs is None:
                         continue
