@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 import time_util
 from collections import defaultdict
 from config import DATABASE_PATH
-from typing import Optional
+from typing import Optional, Union
 from pathlib import Path
 import sys
 import re
@@ -137,6 +137,7 @@ def export_employee_attendance_to_csv(year: int, month: int):
                                 # 退勤が押されてなかった場合
                                 punch_pairs.append((punch_in_time, None))
                                 has_lost = True
+                                punch_in_time = None
                         elif punch_type.name == "OUT":
                             if punch_in_time is not None:
                                 punch_pairs.append((punch_in_time, punch_time))
@@ -148,6 +149,9 @@ def export_employee_attendance_to_csv(year: int, month: int):
                                 # 出勤が押されていなかった場合
                                 punch_pairs.append((None, punch_time))
                                 has_lost = True
+                    if punch_in_time is not None:
+                        punch_pairs.append((punch_in_time, None))
+                        has_lost = True
 
                     if punch_pairs is None:
                         continue
