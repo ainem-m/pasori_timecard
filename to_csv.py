@@ -5,16 +5,17 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import time_util
 from collections import defaultdict
-from config import DATABASE_PATH
+import config
 from typing import Optional, Union
 from pathlib import Path
 import sys
 import re
 
 # SQLiteエンジンを作成し、データベースに接続
-engine = create_engine(f"sqlite:///{DATABASE_PATH}")
+engine = create_engine(f"sqlite:///{config.DATABASE_PATH}")
 Session = sessionmaker(bind=engine)
 
+TIME_FORMAT = "%Y/%m/%d(%a)"
 BLANK = "--:--"  # 使用していないところの時刻表示
 LOST = "##:##"  # 押し忘れの時刻表示
 DIR_NAME = "csv"
@@ -29,7 +30,7 @@ HEADER = [
     "出勤4",
     "退勤4",
     "勤務時間",
-    "押し忘れ",
+    "要確認",
 ]
 BLANK_LINE = [
     "--/--(---)",
@@ -74,7 +75,6 @@ def make_pairs(punches):
 
     while punches:
         punch_type, punch_time = punches.pop()
-
         if punch_type.name == "IN":  # "IN"の場合
             if punches and punches[-1][0].name == "OUT":  # 次が"OUT"ならペアにする
                 _, next_time = punches.pop()
@@ -101,9 +101,9 @@ def export_employee_attendance_to_csv(year: int, month: int):
     day = 16
     now = datetime(year=year, month=month - 1, day=day)
     start_date = now
-    period: list[str] = [now.date().strftime("%m/%d(%a)")]
+    period: list[str] = []
     while day != 15:
-        period.append(now.date().strftime("%m/%d(%a)"))
+        period.append(now.date().strftime(TIME_FORMAT))
         now += one_day
         day = now.day
     end_date = now
@@ -126,7 +126,7 @@ def export_employee_attendance_to_csv(year: int, month: int):
             )
             if not records:
                 print(f"{employee.name} の勤怠記録が見つかりませんでした。")
-                continue
+                # continue 勤怠記録なしでもcsv出力する
 
             # 日付ごとに勤怠を整理するためのデータ構造を用意
             daily_attendance = defaultdict(list)
@@ -134,7 +134,7 @@ def export_employee_attendance_to_csv(year: int, month: int):
             # 勤怠記録を日付ごとに整理
             for record in records:
                 date_ = record.record_time.date()
-                date = date_.strftime("%m/%d(%a)")
+                date = date_.strftime(TIME_FORMAT)
                 record_type = record.record_type
                 record_time = record.record_time
                 daily_attendance[date].append((record_type, record_time))
@@ -144,7 +144,8 @@ def export_employee_attendance_to_csv(year: int, month: int):
                 output_dir / f"{employee.name}.csv",
                 mode="w",
                 newline="",
-                encoding="utf-8",
+                # encoding="utf-8",
+                encoding="utf-8-sig",  # UTF-8 (BOM付き)を指定
             ) as csv_file:
                 writer = csv.writer(csv_file)
 
@@ -192,7 +193,7 @@ def export_employee_attendance_to_csv(year: int, month: int):
 
                     # 行をCSVに書き込む
                     writer.writerow(row)
-
+                writer.writerow([employee.name])
             print(
                 f"{employee.name} の勤怠データを {output_dir}/{employee.name}.csv に書き出しました。"
             )
