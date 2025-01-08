@@ -1,7 +1,5 @@
 libusb1==3.1.0
 loguru==0.7.2
-mypy==1.11.2
-mypy-extensions==1.0.0
 ndeflib==0.3.3
 nfcpy==1.0.4
 pyDes==2.0.1
@@ -13,5 +11,3 @@ pytz==2024.1
 shiboken6==6.7.2
 SQLAlchemy==2.0.34
 tomli==2.0.1
-types-pytz==2024.1.0.20240417
-typing_extensions==4.12.2
