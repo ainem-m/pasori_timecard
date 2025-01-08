@@ -53,7 +53,9 @@ def csv_to_excel(folder_path: Path, output_file):
 
 
 # フォルダパスと出力先ファイル名を指定
-folder_path = Path("./csv/" + input())  # CSVファイルが格納されたフォルダのパス
+folder_path = Path(
+    "./csv/" + input("フォルダを指定 ex) 2025-01")
+)  # CSVファイルが格納されたフォルダのパス
 output_file = folder_path / "merged_data.xlsx"  # 出力されるExcelファイル名
 
 csv_to_excel(folder_path, output_file)
