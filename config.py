@@ -3,6 +3,8 @@
 
 DEBUG: bool = True
 
+# 締め日
+START_DAY = 16
 
 # SQLiteデータベースの設定
 DATABASE_PATH = "nfc_records.db"  # データベースファイルのパス

@@ -96,16 +96,21 @@ def export_employee_attendance_to_csv(year: int, month: int):
     # 出力フォルダを作成 存在する場合は上書き
     output_dir.mkdir(exist_ok=True, parents=True)
     # 調べる期間のdatetimeのリスト
-    # その月の16日から次の月の15日まで
+    # その月の締め日の次の日から次の月の締め日まで
     one_day = timedelta(days=1)
-    day = 16
+    day = config.START_DAY
+    if month == 1:
+        # 1月が指定された場合、前の年の12月から計算する
+        year -= 1
+        month = 13
     now = datetime(year=year, month=month - 1, day=day)
     start_date = now
     period: list[str] = []
-    while day != 15:
+    while day != config.START_DAY - 1:
         period.append(now.date().strftime(TIME_FORMAT))
         now += one_day
         day = now.day
+    period.append(now.date().strftime(TIME_FORMAT))
     end_date = now
     """従業員ごとの勤怠記録をCSVに出力する"""
     with Session() as session:
@@ -234,5 +239,4 @@ if __name__ == "__main__":
         input_str = input("年と月を入力 例: 2024/08, 2024/8, 24/08, 24/8 ->")
     else:
         input_str = sys.argv[1]
-    parse_date_string(input_str)
     export_employee_attendance_to_csv(*parse_date_string(input_str))
