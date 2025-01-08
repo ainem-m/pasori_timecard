@@ -12,6 +12,7 @@ from config import DATABASE_PATH, DEBUG, EMPLOYEE_LIST
 from typing import Any, Optional
 import time_util
 import os
+import json
 
 
 engine = create_engine(f"sqlite:///{DATABASE_PATH}", echo=False)
@@ -254,18 +255,22 @@ if __name__ == "__main__":
 
     # EMPLOYEE_LISTに書かれている従業員名が登録されていなかったら登録する
     if os.path.exists(EMPLOYEE_LIST):
-        employee_names: list[str] = list(map(lambda x: x.name, Employee.get_all()))
+        # データベースに既存の従業員名リストを取得
+        employee_names = {x.name for x in Employee.get_all()}
+        print(employee_names)
+
+        # JSONファイルからデータを読み込む
         with open(EMPLOYEE_LIST, "r+", encoding="utf-8") as file:
-            for line in file:
-                employee_name = line.strip()  # 改行を削除して従業員名を取得
-                Employee.add(
-                    employee_name
-                )  # もし従業員がすでに存在した場合のエラーハンドリングはEmployee側に任せる
-            # EMPLOYEE_LISTに従業員名を同期する
-            # データベースの従業員リストに同期するため、EMPLOYEE_LISTを上書き更新
-            file.seek(0)  # ファイルの先頭に戻る
-            file.truncate()  # ファイル内容を削除
-            # データベースに存在する従業員名をすべて書き込む
-            for employee in Employee.get_all():
-                file.write(f"{employee.name}\n")
-            print("従業員リストをファイルに同期しました。")
+            existing_data = json.load(file)  # 現在のデータを読み込む
+
+            # 従業員名がまだ登録されていない場合はデータベースに追加
+            for employee_name, _template_type in existing_data.items():
+                if employee_name not in employee_names:
+                    Employee.add(employee_name)
+
+            for employee_name in employee_names:
+                if employee_name not in existing_data.keys():
+                    print(
+                        employee_name,
+                        "がデータベースに存在しますが、リストに存在しません。",
+                    )
