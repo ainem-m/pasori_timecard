@@ -1,61 +1,223 @@
-import os
 import csv
-from openpyxl import Workbook
+import json
+from openpyxl import load_workbook
+from openpyxl.workbook.defined_name import DefinedName
 from pathlib import Path
+import config  # config.pyにEMPLOYEE_LISTが設定されている前提
+import to_csv
+from openpyxl.styles import Font, PatternFill, Border, Alignment
 
 
-def csv_to_excel(folder_path: Path, output_file):
+def load_employee_mapping(file_path: Path) -> dict:
     """
-    指定されたフォルダ内のCSVをそれぞれのシートにして1つのExcelファイルにまとめる。
+    従業員名とテンプレート種別のマッピング情報を読み込む。
 
     Args:
-        folder_path (str): CSVファイルが格納されたフォルダのパス
-        output_file (str): 作成されるExcelファイルのパス
+        file_path (Path): JSON形式のマッピングファイルパス
+
+    Returns:
+        dict: 従業員名とテンプレート種別のマッピング
     """
-    # 新しいExcelワークブックを作成
-    wb = Workbook()
-    initial_sheet = wb.active
-    initial_sheet.title = "概要"  # 最初のシートを概要用にする
-
-    # フォルダ内のCSVファイルを取得
     try:
-        csv_files = [f for f in os.listdir(folder_path) if f.endswith(".csv")]
-    except FileNotFoundError as e:
-        print("フォルダが存在しません、以下から指定してください。")
-        print(os.listdir(folder_path.parent))
-        exit(print(e))
+        with file_path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"{file_path} が見つかりません。")
+        exit()
+    except json.JSONDecodeError:
+        print(f"{file_path} の形式が正しくありません。")
+        exit()
 
+
+def get_csv_files(folder_path: Path) -> list:
+    """
+    指定されたフォルダ内のCSVファイルを取得。
+
+    Args:
+        folder_path (Path): CSVファイルが格納されたフォルダのパス
+
+    Returns:
+        list: CSVファイルPathのリスト
+    """
+    if not folder_path.exists():
+        print(f"フォルダ {folder_path} が存在しません。")
+        exit()
+
+    return [file for file in folder_path.iterdir() if file.suffix == ".csv"]
+
+
+def write_csv_to_sheet(ws, csv_path: Path):
+    """
+    CSVの内容を指定されたシートに書き込む。
+
+    Args:
+        ws (Worksheet): 書き込み先のシート
+        csv_path (Path): CSVファイルのパス
+    """
+    with csv_path.open(mode="r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        for row_idx, row in enumerate(reader, start=1):  # 行番号は1から始まる
+            val = ws[row_idx][0].value
+            if not (val == to_csv.BLANK_LINE[0] or val is None):
+                continue  # すでに入力されたことのある行はスキップ
+            for col_idx, value in enumerate(row, start=1):  # 列番号は1から始まる
+                ws.cell(row=row_idx, column=col_idx, value=value)
+
+
+def copy_sheet(source_ws, target_wb, target_name):
+    """
+    wb1のws1シートをwb2にコピーする。値、書式、列の幅、行の高さを含む。
+
+    Args:
+        source_ws (Worksheet): コピー元のシート
+        target_wb (Workbook): コピー先のワークブック
+        target_name (str): コピー先のシート名
+
+    Returns:
+        bool: コピーに成功すればTrue,すでに存在していた場合False
+    """
+    # 新しいシートを作成
+    if target_name in target_wb.sheetnames:
+        return False
+    ws2 = target_wb.create_sheet(target_name)
+
+    # セルの値と書式をコピー
+    for row in source_ws.iter_rows():
+        for cell in row:
+            # 新しいシートにセルの値をコピー
+            new_cell = ws2[cell.coordinate]
+            new_cell.value = cell.value
+
+            # スタイル（フォント、色、罫線、配置など）をコピー
+            if cell.font:
+                new_cell.font = Font(
+                    name=cell.font.name,
+                    size=cell.font.size,
+                    bold=cell.font.bold,
+                    italic=cell.font.italic,
+                    vertAlign=cell.font.vertAlign,
+                    underline=cell.font.underline,
+                    strike=cell.font.strike,
+                    color=cell.font.color,
+                )
+
+            if cell.fill:
+                new_cell.fill = PatternFill(
+                    patternType=cell.fill.patternType,
+                    fgColor=cell.fill.fgColor,
+                    bgColor=cell.fill.bgColor,
+                )
+
+            if cell.border:
+                new_cell.border = Border(
+                    left=cell.border.left,
+                    right=cell.border.right,
+                    top=cell.border.top,
+                    bottom=cell.border.bottom,
+                    diagonal=cell.border.diagonal,
+                    outline=cell.border.outline,
+                    vertical=cell.border.vertical,
+                    horizontal=cell.border.horizontal,
+                )
+
+            if cell.alignment:
+                new_cell.alignment = Alignment(
+                    horizontal=cell.alignment.horizontal,
+                    vertical=cell.alignment.vertical,
+                    textRotation=cell.alignment.textRotation,
+                    wrapText=cell.alignment.wrapText,
+                    shrinkToFit=cell.alignment.shrinkToFit,
+                    indent=cell.alignment.indent,
+                    relativeIndent=cell.alignment.relativeIndent,
+                )
+
+            if cell.number_format:
+                new_cell.number_format = cell.number_format
+
+    # 列幅をコピー
+    for col_letter, column_dimension in source_ws.column_dimensions.items():
+        ws2.column_dimensions[col_letter].width = column_dimension.width
+
+    # 行の高さをコピー
+    for row_number, row_dimension in source_ws.row_dimensions.items():
+        ws2.row_dimensions[row_number].height = row_dimension.height
+
+    return True
+
+
+def csv_to_excel(
+    folder_path: Path, template_file: Path, employee_mapping: dict, output_file: Path
+):
+    """
+    CSVデータを従業員名に対応するテンプレートシートに書き込む。
+
+    Args:
+        folder_path (Path): CSVファイルが格納されたフォルダのパス
+        template_file (Path): テンプレートExcelファイルのパス
+        employee_mapping (dict): 従業員名とテンプレートのマッピング
+        output_file (Path): 出力されるExcelファイルのパス
+    """
+    year = int(folder_path.name.split("-")[0])
+    month = int(folder_path.name.split("-")[1])
+
+    # テンプレートファイルを読み込む
+    if not template_file.exists():
+        print(f"テンプレートファイル {template_file} が存在しません。")
+        return
+
+    template = load_workbook(template_file, keep_vba=True)
+    temp_types = template.sheetnames
+    if not output_file.exists():
+        template.save(output_file)
+
+    wb = load_workbook(output_file, keep_vba=True)
+    wb.defined_names["year"] = DefinedName(name="year", attr_text=year)
+    wb.defined_names["month"] = DefinedName(name="month", attr_text=month)
+
+    # CSVファイルを取得
+    csv_files = get_csv_files(folder_path)
     if not csv_files:
         print("指定されたフォルダにCSVファイルがありません。")
         return
 
+    # 各CSVファイルを処理
     for csv_file in csv_files:
-        csv_path = os.path.join(folder_path, csv_file)
+        employee_name = csv_file.stem
+        template_type = employee_mapping.get(employee_name)
 
-        # CSVを新しいシートに追加
-        sheet_name = os.path.splitext(csv_file)[
-            0
-        ]  # 拡張子を除いたファイル名をシート名にする
-        ws = wb.create_sheet(title=sheet_name)
+        if not template_type:
+            print(
+                f"{employee_name} のテンプレート情報が見つかりません。スキップします。"
+            )
+            continue
 
-        with open(csv_path, mode="r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            for row in reader:
-                ws.append(row)
+        # テンプレートを従業員名のシートとしてコピー
+        if not copy_sheet(template[template_type], wb, employee_name):
+            print(employee_name, "がすでに存在していたため上書きします")
 
-    # 最初の空シート（"概要"）を削除
-    if "概要" in wb.sheetnames and len(wb.sheetnames) > 1:
-        wb.remove(initial_sheet)
+        # CSVデータを書き込み
+        write_csv_to_sheet(wb[employee_name], csv_file)
 
-    # Excelファイルを保存
+    for temp in temp_types:
+        # 初期Sheetを削除
+        if temp in wb.sheetnames:
+            del wb[temp]
+
+    # 新しいExcelファイルを保存
     wb.save(output_file)
-    print(f"Excelファイルが作成されました：{output_file}")
+    print(f"新しいExcelファイルが作成されました：{output_file}")
 
 
-# フォルダパスと出力先ファイル名を指定
-folder_path = Path(
-    "./csv/" + input("フォルダを指定 ex) 2025-01")
-)  # CSVファイルが格納されたフォルダのパス
-output_file = folder_path / "merged_data.xlsx"  # 出力されるExcelファイル名
+# メイン処理
+if __name__ == "__main__":
+    folder_path = Path(
+        "./csv/" + input("フォルダを指定 ex) 2025-01: ")
+    )  # CSVファイルが格納されたフォルダのパス
+    template_file = Path("template.xlsm")  # テンプレートExcelファイルのパス
+    output_file = folder_path / "data.xlsm"  # 出力される新規Excelファイルのパス
 
-csv_to_excel(folder_path, output_file)
+    # 従業員名とテンプレートのマッピングを読み込む
+    employee_mapping = load_employee_mapping(Path(config.EMPLOYEE_LIST))
+
+    # CSVからExcelへのデータ転送
+    csv_to_excel(folder_path, template_file, employee_mapping, output_file)
