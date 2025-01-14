@@ -16,7 +16,7 @@ engine = create_engine(f"sqlite:///{config.DATABASE_PATH}")
 Session = sessionmaker(bind=engine)
 
 TIME_FORMAT = "%Y/%m/%d(%a)"
-BLANK = "--:--"  # 使用していないところの時刻表示
+BLANK = "-"  # 使用していないところの時刻表示
 LOST = "##:##"  # 押し忘れの時刻表示
 DIR_NAME = "csv"
 HEADER = [
@@ -32,19 +32,7 @@ HEADER = [
     "勤務時間",
     "要確認",
 ]
-BLANK_LINE = [
-    "--/--(---)",
-    BLANK,
-    BLANK,
-    BLANK,
-    BLANK,
-    BLANK,
-    BLANK,
-    BLANK,
-    BLANK,
-    BLANK,
-    "-",
-]
+BLANK_LINE = [BLANK] * len(HEADER)
 
 
 def calc_duration(start: datetime, stop: datetime) -> int:

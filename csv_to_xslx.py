@@ -57,11 +57,11 @@ def write_csv_to_sheet(ws, csv_path: Path):
     with csv_path.open(mode="r", encoding="utf-8") as f:
         reader = csv.reader(f)
         for row_idx, row in enumerate(reader, start=1):  # 行番号は1から始まる
-            val = ws[row_idx][0].value
-            if not (val == to_csv.BLANK_LINE[0] or val is None):
-                continue  # すでに入力されたことのある行はスキップ
             for col_idx, value in enumerate(row, start=1):  # 列番号は1から始まる
-                ws.cell(row=row_idx, column=col_idx, value=value)
+                cell_value = ws[row_idx][col_idx].value
+                if cell_value in [None, "", to_csv.BLANK, to_csv.LOST]:
+                    # 今まで入力されたことのないセル、もしくはLOSTのセルのみ入力する
+                    ws.cell(row=row_idx, column=col_idx, value=value)
 
 
 def copy_sheet(source_ws, target_wb, target_name):
