@@ -18,7 +18,6 @@ Session = sessionmaker(bind=engine)
 TIME_FORMAT = "%Y/%m/%d(%a)"
 BLANK = "-"  # 使用していないところの時刻表示
 LOST = "##:##"  # 押し忘れの時刻表示
-DIR_NAME = "csv"
 HEADER = [
     "日付",
     "出勤1",
@@ -79,7 +78,7 @@ def make_pairs(punches):
 
 
 def export_employee_attendance_to_csv(year: int, month: int):
-    output_dir = Path(f"{DIR_NAME}/{year}-{month:02d}")
+    output_dir = Path(config.CSV_PATH) / f"{year}-{month:02d}"
 
     # 出力フォルダを作成 存在する場合は上書き
     output_dir.mkdir(exist_ok=True, parents=True)
@@ -99,7 +98,7 @@ def export_employee_attendance_to_csv(year: int, month: int):
         now += one_day
         day = now.day
     period.append(now.date().strftime(TIME_FORMAT))
-    end_date = now
+    end_date = now + one_day
     """従業員ごとの勤怠記録をCSVに出力する"""
     with Session() as session:
         # 全従業員を取得
@@ -112,7 +111,7 @@ def export_employee_attendance_to_csv(year: int, month: int):
                 .filter_by(employee_id=employee.employee_id)
                 .filter(
                     start_date <= AttendanceRecord.record_time,
-                    AttendanceRecord.record_time <= end_date,
+                    AttendanceRecord.record_time < end_date,
                 )
                 .order_by(AttendanceRecord.record_time)
                 .all()
