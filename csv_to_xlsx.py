@@ -199,6 +199,8 @@ def csv_to_excel(
         write_csv_to_sheet(wb[employee_name], csv_file)
 
     for temp in temp_types:
+        if temp == "button":
+            continue
         # 初期Sheetを削除
         if temp in wb.sheetnames:
             del wb[temp]
@@ -211,9 +213,9 @@ def csv_to_excel(
 # メイン処理
 if __name__ == "__main__":
     folder_path = Path(
-        "./csv/" + input("フォルダを指定 ex) 2025-01: ")
+        config.CSV_PATH + input("フォルダを指定 ex) 2025-01: ")
     )  # CSVファイルが格納されたフォルダのパス
-    template_file = Path("template.xlsm")  # テンプレートExcelファイルのパス
+    template_file = Path(config.TEMPLATE_PATH)  # テンプレートExcelファイルのパス
     output_file = folder_path / "data.xlsm"  # 出力される新規Excelファイルのパス
 
     # 従業員名とテンプレートのマッピングを読み込む
