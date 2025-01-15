@@ -6,6 +6,7 @@ from pathlib import Path
 import config  # config.pyにEMPLOYEE_LISTが設定されている前提
 import to_csv
 from openpyxl.styles import Font, PatternFill, Border, Alignment
+import sys
 
 
 def load_employee_mapping(file_path: Path) -> dict:
@@ -212,9 +213,14 @@ def csv_to_excel(
 
 # メイン処理
 if __name__ == "__main__":
-    folder_path = Path(
-        config.CSV_PATH + input("フォルダを指定 ex) 2025-01: ")
-    )  # CSVファイルが格納されたフォルダのパス
+    input_str: str
+    if len(sys.argv) != 2:
+        input_str = input("年と月を入力 例: 2024/08, 2024/8, 24/08, 24/8 ->")
+    else:
+        input_str = sys.argv[1]
+    year, month = to_csv.parse_date_string(input_str)
+    folder_path = Path(config.CSV_PATH) / f"{year:04d}-{month:02d}"
+    # CSVファイルが格納されたフォルダのパス
     template_file = Path(config.TEMPLATE_PATH)  # テンプレートExcelファイルのパス
     output_file = folder_path / "data.xlsm"  # 出力される新規Excelファイルのパス
 
