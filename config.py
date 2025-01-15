@@ -6,9 +6,12 @@ DEBUG: bool = True
 # 締め日
 START_DAY = 16
 
-# SQLiteデータベースの設定
+# ファイルパスの設定
 DATABASE_PATH = "nfc_records.db"  # データベースファイルのパス
-EMPLOYEE_LIST = "employee_list.txt"
+EMPLOYEE_LIST = "employee_list.txt"  # 従業員名、対応するテンプレート
+CSV_PATH = "csv"  # csvファイルの出力フォルダ(このフォルダを親フォルダとしてYYYY-MMの子フォルダを作成します)
+TEMPLATE_PATH = "template.xlsm"
+LOG_FILE_PATH: str = "application.log"  # ログファイルの設定(未実装)
 
 # GUIの設定
 WINDOW_SIZE: tuple[int, int] = (480, 400)  # ウィンドウのサイズ
@@ -27,9 +30,6 @@ class StyleSheets:
 
 # 自動で閉じるウィンドウのタイマー設定
 TIME_OUT: int = 10
-
-# ログファイルの設定(未実装)
-LOG_FILE_PATH: str = "application.log"  # ログファイルのパス
 
 
 class MessageTexts:
