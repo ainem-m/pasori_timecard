@@ -2,11 +2,20 @@ import csv
 import json
 from openpyxl import load_workbook
 from openpyxl.workbook.defined_name import DefinedName
+from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.formatting.rule import FormulaRule
+from openpyxl.styles import PatternFill
+from openpyxl.worksheet.cell_range import CellRange
 from pathlib import Path
 import config  # config.pyにEMPLOYEE_LISTが設定されている前提
 import to_csv
+import time_util
 from openpyxl.styles import Font, PatternFill, Border, Alignment
 import sys
+
+PRINT_AREA = "O1:V38"
+VALIDATE_AREA = CellRange("G2:G33")
+HIGHLIGHT_AREA = CellRange("A2:G33")
 
 
 def load_employee_mapping(file_path: Path) -> dict:
@@ -146,6 +155,33 @@ def copy_sheet(source_ws, target_wb, target_name):
     return True
 
 
+def initialize_sheet(ws) -> None:
+    """
+    シートの印刷範囲（PRINT_AREA）を設定し、「備考」欄（VALIDATE_AREA）に入力規則を適用する
+    """
+    # 印刷範囲の設定
+    ws.print_area = PRINT_AREA
+
+    # 備考欄の入力規則
+    validation = DataValidation(
+        type="list",
+        formula1='"有給, AM有給, PM有給, 早退, 遅刻, 欠勤, 中抜け, 追加残業"',
+        allow_blank=True,
+    )
+    validation.error = "選択肢から選んでください"
+    validation.errorTitle = "入力エラー"
+    validation.prompt = "選択肢から選んでください"
+    validation.promptTitle = "備考欄の入力"
+    # シートに入力規則を追加
+    ws.add_data_validation(validation)
+    validation.add(VALIDATE_AREA)
+
+    # 条件付き書式の追加 なぜかうまくいかない
+    # red_fill = PatternFill(start_color="FF9999", end_color="FF9999", fill_type="solid")
+    # rule = FormulaRule(formula=['$F2="-"'], stopIfTrue=True, fill=red_fill)
+    # ws.conditional_formatting.add(HIGHLIGHT_AREA, rule)
+
+
 def csv_to_excel(
     folder_path: Path, template_file: Path, employee_mapping: dict, output_file: Path
 ):
@@ -193,7 +229,9 @@ def csv_to_excel(
             continue
 
         # テンプレートを従業員名のシートとしてコピー
-        if not copy_sheet(template[template_type], wb, employee_name):
+        if copy_sheet(template[template_type], wb, employee_name):
+            initialize_sheet(wb[employee_name])
+        else:
             print(employee_name, "がすでに存在していたため上書きします")
 
         # CSVデータを書き込み
@@ -218,7 +256,7 @@ if __name__ == "__main__":
         input_str = input("年と月を入力 例: 2024/08, 2024/8, 24/08, 24/8 ->")
     else:
         input_str = sys.argv[1]
-    year, month = to_csv.parse_date_string(input_str)
+    year, month = time_util.parse_date_string(input_str)
     folder_path = Path(config.CSV_PATH) / f"{year:04d}-{month:02d}"
     # CSVファイルが格納されたフォルダのパス
     template_file = Path(config.TEMPLATE_PATH)  # テンプレートExcelファイルのパス

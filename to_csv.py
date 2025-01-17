@@ -9,7 +9,6 @@ import config
 from typing import Optional, Union
 from pathlib import Path
 import sys
-import re
 
 # SQLiteエンジンを作成し、データベースに接続
 engine = create_engine(f"sqlite:///{config.DATABASE_PATH}")
@@ -24,22 +23,9 @@ HEADER = [
     "退勤1",
     "出勤2",
     "退勤2",
-    "出勤3",
-    "退勤3",
-    "出勤4",
-    "退勤4",
-    "勤務時間",
     "要確認",
 ]
 BLANK_LINE = [BLANK] * len(HEADER)
-
-
-def calc_duration(start: datetime, stop: datetime) -> int:
-    assert start < stop
-    hours = stop.hour - start.hour
-    minutes = stop.minute - start.minute
-    total_minutes = hours * 60 + minutes
-    return total_minutes
 
 
 def make_pairs(punches):
@@ -54,7 +40,6 @@ def make_pairs(punches):
                punch_pairs: [(IN_time, OUT_time), ...]
                has_lost: True ifペアリングに失敗した打刻がある場合。
     """
-    total_work_duration = 0
     has_lost = False
     punch_pairs = []
 
@@ -66,7 +51,6 @@ def make_pairs(punches):
             if punches and punches[-1][0].name == "OUT":  # 次が"OUT"ならペアにする
                 _, next_time = punches.pop()
                 punch_pairs.append((punch_time, next_time))
-                total_work_duration += calc_duration(punch_time, next_time)
             else:  # 次が"OUT"でない、または打刻がない場合
                 punch_pairs.append((punch_time, None))
                 has_lost = True
@@ -74,7 +58,7 @@ def make_pairs(punches):
             punch_pairs.append((None, punch_time))
             has_lost = True
 
-    return punch_pairs, has_lost, total_work_duration
+    return punch_pairs, has_lost
 
 
 def export_employee_attendance_to_csv(year: int, month: int):
@@ -154,13 +138,13 @@ def export_employee_attendance_to_csv(year: int, month: int):
 
                     row = [date]
 
-                    punch_pairs, has_lost, total_work_duration = make_pairs(punches)
+                    punch_pairs, has_lost = make_pairs(punches)
 
                     if punch_pairs is None:
                         continue
 
-                    # 最大4ペアまで対応（出勤1～4、退勤1～4）
-                    for i in range(4):
+                    # 最大2ペアまで対応（出勤1～2、退勤1～2）
+                    for i in range(2):
                         if i >= len(punch_pairs):
                             # 出勤退勤のペアが4未満の場合、空白を追加してフォーマットを揃える
                             row.append(BLANK)
@@ -176,10 +160,6 @@ def export_employee_attendance_to_csv(year: int, month: int):
                         else:
                             row.append(LOST)
 
-                    # 勤務時間を計算して追加
-                    total_hours, total_minutes = divmod(total_work_duration, 60)
-                    row.append(f"{total_hours:02d}:{total_minutes:02d}")
-
                     # 押し忘れがあるかどうか
                     row.append("有り" if has_lost else "-")
 
@@ -191,39 +171,10 @@ def export_employee_attendance_to_csv(year: int, month: int):
             )
 
 
-def parse_date_string(date_str):
-    # Validate input format using regex (allows YYYY/MM, YY/MM, YYYY/M, YY/M, etc.)
-    if not re.match(r"^\d{2,4}[-/]\d{1,2}$", date_str):
-        raise ValueError("以下の形式で入力してください: YYYY/MM, YY/MM, YYYY/M, YY/M")
-
-    # Detect if it's separated by '/' or '-'
-    separator = "/" if "/" in date_str else "-"
-
-    # Split by the separator
-    year_str, month_str = date_str.split(separator)
-
-    # Validate year and month ranges
-    if not (1 <= int(month_str) <= 12):
-        raise ValueError(
-            "1月から12月の範囲で入力してください フォーマット: YYYY/MM, YY/MM, YYYY/M, YY/M"
-        )
-
-    # Process year
-    if len(year_str) == 2:
-        year = 2000 + int(year_str) if int(year_str) < 50 else 1900 + int(year_str)
-    else:
-        year = int(year_str)
-
-    # Process month
-    month = int(month_str)
-
-    return (year, month)
-
-
 if __name__ == "__main__":
     input_str: str
     if len(sys.argv) != 2:
         input_str = input("年と月を入力 例: 2024/08, 2024/8, 24/08, 24/8 ->")
     else:
         input_str = sys.argv[1]
-    export_employee_attendance_to_csv(*parse_date_string(input_str))
+    export_employee_attendance_to_csv(*time_util.parse_date_string(input_str))
