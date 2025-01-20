@@ -4,10 +4,9 @@ from openpyxl import load_workbook
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.formatting.rule import FormulaRule
-from openpyxl.styles import PatternFill
 from openpyxl.worksheet.cell_range import CellRange
 from pathlib import Path
-import config  # config.pyにEMPLOYEE_LISTが設定されている前提
+import config
 import to_csv
 import time_util
 from openpyxl.styles import Font, PatternFill, Border, Alignment

@@ -238,6 +238,25 @@ class AttendanceRecord(Base):
             session.commit()
             print(f"記録しました{new_record}")
 
+    @classmethod
+    def get_employee_records(
+        cls,
+        employee_id,
+        start_date=datetime(year=2000, month=1, day=1),
+        end_date=datetime.now(),
+    ):
+        with Session() as session:
+            return (
+                session.query(cls)
+                .filter_by(employee_id=employee_id)
+                .filter(
+                    start_date <= AttendanceRecord.record_time,
+                    AttendanceRecord.record_time < end_date,
+                )
+                .order_by(AttendanceRecord.record_time)
+                .all()
+            )
+
     def __repr__(self):
         return (
             f"AttendanceRecord(record_id={self.record_id}, employee_id={self.employee_id}, record_type='{self.record_type}', "

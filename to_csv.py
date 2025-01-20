@@ -1,8 +1,6 @@
 import csv
 from datetime import datetime, timedelta
 from db_alchemy import Employee, AttendanceRecord
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
 import time_util
 from collections import defaultdict
 import config
@@ -10,9 +8,6 @@ from typing import Optional, Union
 from pathlib import Path
 import sys
 
-# SQLiteエンジンを作成し、データベースに接続
-engine = create_engine(f"sqlite:///{config.DATABASE_PATH}")
-Session = sessionmaker(bind=engine)
 
 TIME_FORMAT = "%Y/%m/%d(%a)"
 BLANK = "-"  # 使用していないところの時刻表示
@@ -84,91 +79,83 @@ def export_employee_attendance_to_csv(year: int, month: int):
     period.append(now.date().strftime(TIME_FORMAT))
     end_date = now + one_day
     """従業員ごとの勤怠記録をCSVに出力する"""
-    with Session() as session:
-        # 全従業員を取得
-        employees = session.query(Employee).all()
+    # 全従業員を取得
+    employees = Employee.get_all()
 
-        for employee in employees:
-            # 従業員の全勤怠記録を取得、ここで昇順になっていることが保証される
-            records = (
-                session.query(AttendanceRecord)
-                .filter_by(employee_id=employee.employee_id)
-                .filter(
-                    start_date <= AttendanceRecord.record_time,
-                    AttendanceRecord.record_time < end_date,
-                )
-                .order_by(AttendanceRecord.record_time)
-                .all()
-            )
-            if not records:
-                print(f"{employee.name} の勤怠記録が見つかりませんでした。")
-                # continue 勤怠記録なしでもcsv出力する
+    for employee in employees:
+        # 従業員の全勤怠記録を取得、ここで昇順になっていることが保証される
+        records = AttendanceRecord.get_employee_records(
+            employee_id=employee.employee_id, start_date=start_date, end_date=end_date
+        )
+        if not records:
+            print(f"{employee.name} の勤怠記録が見つかりませんでした。")
+            # continue 勤怠記録なしでもcsv出力する
 
-            # 日付ごとに勤怠を整理するためのデータ構造を用意
-            daily_attendance = defaultdict(list)
+        # 日付ごとに勤怠を整理するためのデータ構造を用意
+        daily_attendance = defaultdict(list)
 
-            # 勤怠記録を日付ごとに整理
-            for record in records:
-                date_ = record.record_time.date()
-                date = date_.strftime(TIME_FORMAT)
-                record_type = record.record_type
-                record_time = record.record_time
-                daily_attendance[date].append((record_type, record_time))
+        # 勤怠記録を日付ごとに整理
+        for record in records:
+            date_ = record.record_time.date()
+            date = date_.strftime(TIME_FORMAT)
+            record_type = record.record_type
+            record_time = record.record_time
+            daily_attendance[date].append((record_type, record_time))
 
-            # CSVファイルを従業員名で開く
-            with open(
-                output_dir / f"{employee.name}.csv",
-                mode="w",
-                newline="",
-                # encoding="utf-8",
-                encoding="utf-8-sig",  # UTF-8 (BOM付き)を指定
-            ) as csv_file:
-                writer = csv.writer(csv_file)
+        # CSVファイルを従業員名で開く
+        with open(
+            output_dir / f"{employee.name}.csv",
+            mode="w",
+            newline="",
+            # encoding="utf-8",
+            encoding="utf-8-sig",  # UTF-8 (BOM付き)を指定
+        ) as csv_file:
+            writer = csv.writer(csv_file)
 
-                # ヘッダー行を書き込む
+            # ヘッダー行を書き込む
 
-                writer.writerow(HEADER)
+            writer.writerow(HEADER)
 
-                # 日付ごとに出勤・退勤をペアにして書き込む
-                for date in period:
-                    punches = daily_attendance[date]
-                    if len(punches) == 0:
-                        writer.writerow(BLANK_LINE)
+            # 日付ごとに出勤・退勤をペアにして書き込む
+            for date in period:
+                punches = daily_attendance[date]
+                if len(punches) == 0:
+                    writer.writerow(BLANK_LINE)
+                    continue
+
+                row = [date]
+
+                punch_pairs, has_lost = make_pairs(punches)
+
+                if punch_pairs is None:
+                    continue
+
+                # 最大2ペアまで対応（出勤1～2、退勤1～2）
+                for i in range(2):
+                    if i >= len(punch_pairs):
+                        # 出勤退勤のペアが4未満の場合、空白を追加してフォーマットを揃える
+                        row.append(BLANK)
+                        row.append(BLANK)
                         continue
+                    punch_in, punch_out = punch_pairs[i]
+                    if punch_in is not None:
+                        row.append(time_util.datetime_to_string(punch_in, "%H:%M"))
+                    else:
+                        row.append(LOST)
+                    if punch_out is not None:
+                        row.append(time_util.datetime_to_string(punch_out, "%H:%M"))
+                    else:
+                        row.append(LOST)
 
-                    row = [date]
+                # 押し忘れがあるかどうか
+                row.append("有り" if has_lost else "-")
 
-                    punch_pairs, has_lost = make_pairs(punches)
-
-                    if punch_pairs is None:
-                        continue
-
-                    # 最大2ペアまで対応（出勤1～2、退勤1～2）
-                    for i in range(2):
-                        if i >= len(punch_pairs):
-                            # 出勤退勤のペアが4未満の場合、空白を追加してフォーマットを揃える
-                            row.append(BLANK)
-                            row.append(BLANK)
-                            continue
-                        punch_in, punch_out = punch_pairs[i]
-                        if punch_in is not None:
-                            row.append(time_util.datetime_to_string(punch_in, "%H:%M"))
-                        else:
-                            row.append(LOST)
-                        if punch_out is not None:
-                            row.append(time_util.datetime_to_string(punch_out, "%H:%M"))
-                        else:
-                            row.append(LOST)
-
-                    # 押し忘れがあるかどうか
-                    row.append("有り" if has_lost else "-")
-
-                    # 行をCSVに書き込む
-                    writer.writerow(row)
-                writer.writerow([employee.name])
-            print(
-                f"{employee.name} の勤怠データを {output_dir}/{employee.name}.csv に書き出しました。"
-            )
+                # 行をCSVに書き込む
+                writer.writerow(row)
+            writer.writerow([employee.name])
+        print(
+            f"{employee.name} の勤怠データを {output_dir}/{employee.name}.csv に書き出しました。"
+        )
 
 
 if __name__ == "__main__":
