@@ -243,7 +243,7 @@ class AttendanceRecord(Base):
         cls,
         employee_id,
         start_date=datetime(year=2000, month=1, day=1),
-        end_date=datetime.now(),
+        end_date=time_util.current_time() + time_util.ONE_DAY,
     ):
         with Session() as session:
             return (

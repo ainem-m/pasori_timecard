@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import re
 
 TIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 TZ = pytz.timezone("Asia/Tokyo")
+ONE_DAY = timedelta(days=1)
 
 
 def current_time():
@@ -65,3 +66,65 @@ def parse_date_string(date_str):
     month = int(month_str)
 
     return (year, month)
+
+
+def get_billing_period(
+    year: int, month: int, start_day: int
+) -> tuple[datetime, datetime]:
+    """
+    指定した年・月の「締め日翌日から次の締め日まで」の期間を求める。
+
+    Parameters:
+        year (int): 対象の年
+        month (int): 対象の月
+        start_day (int): 締め日（開始日）
+
+    Returns:
+        tuple[datetime, datetime]: (開始日, 終了日)
+    """
+    # 1月の場合、前年の12月から計算
+    if month == 1:
+        start_date = datetime(year=year - 1, month=12, day=start_day) + ONE_DAY
+        end_date = datetime(year=year, month=1, day=start_day)
+    else:
+        start_date = datetime(year=year, month=month - 1, day=start_day) + ONE_DAY
+        end_date = datetime(year=year, month=month, day=start_day)
+
+    return start_date, end_date
+
+
+def get_date_list(
+    start_date: datetime, end_date: datetime, time_format: str = "%Y-%m-%d"
+) -> list[str]:
+    """
+    指定した開始日と終了日の間の日付リストを作成する。
+
+    Parameters:
+        start_date (datetime): 期間の開始日
+        end_date (datetime): 期間の終了日
+        time_format (str): 期間リストのフォーマット（デフォルト: "YYYY-MM-DD"）
+
+    Returns:
+        list[str]: 期間のフォーマットされた日付リスト
+    """
+    date_list = []
+    now = start_date
+
+    while now <= end_date:
+        date_list.append(now.strftime(time_format))
+        now += ONE_DAY
+
+    return date_list
+
+
+def days_ago(days):
+    return current_time() - ONE_DAY * days
+
+
+if __name__ == "__main__":
+    # テスト
+    year = 2025
+    month = 1
+    start, end = get_billing_period(year, month, 15)
+    print(get_date_list(start, end))
+    print(days_ago(7))
