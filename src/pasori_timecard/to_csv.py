@@ -3,7 +3,6 @@ from db_alchemy import Employee, AttendanceRecord
 import time_util
 from collections import defaultdict
 import config
-from typing import Optional, Union
 from pathlib import Path
 import sys
 

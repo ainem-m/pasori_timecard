@@ -3,7 +3,6 @@ import json
 from openpyxl import load_workbook
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.formatting.rule import FormulaRule
 from openpyxl.worksheet.cell_range import CellRange
 from pathlib import Path
 import config

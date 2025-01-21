@@ -71,7 +71,7 @@ class NfcReader(QThread):
             return False
         elif target.sel_res and target.sel_res[0] & 0x40:
             return False
-        elif target.sensf_res and target.sensf_res[1:3] == b"\x01\xFE":
+        elif target.sensf_res and target.sensf_res[1:3] == b"\x01\xfe":
             return False
         else:
             return True
@@ -86,6 +86,5 @@ class NfcReader(QThread):
 
 
 if __name__ == "__main__":
-
     nfc_reader = NfcReader(nfc.ContactlessFrontend("usb"))
     nfc_reader.run()

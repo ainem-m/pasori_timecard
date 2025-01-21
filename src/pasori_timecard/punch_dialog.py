@@ -29,7 +29,6 @@ class PunchDialog(QDialog):
     """
 
     def __init__(self, ic_card_id: str, punch_time, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.timeout = TIME_OUT

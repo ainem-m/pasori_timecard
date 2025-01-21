@@ -3,7 +3,6 @@ import random
 from db_alchemy import Employee, AttendanceRecord, RecordType
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import time_util
 from config import DATABASE_PATH
 
 # SQLiteエンジンを作成し、データベースに接続

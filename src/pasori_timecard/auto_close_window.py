@@ -10,7 +10,6 @@ class AutoCloseMessageBox(QMessageBox):
     """
 
     def __init__(self, title="", text="", *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         self.text = text
         self.timeout = TIME_OUT

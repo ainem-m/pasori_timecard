@@ -8,7 +8,7 @@ from sqlalchemy.orm import (
 )
 from datetime import datetime
 import enum
-from config import DATABASE_PATH, DEBUG, EMPLOYEE_LIST
+from config import DATABASE_PATH, EMPLOYEE_LIST
 from typing import Any, Optional
 import time_util
 import os

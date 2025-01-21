@@ -1,3 +1,4 @@
+from pathlib import Path
 # config.py
 
 
@@ -6,12 +7,13 @@ DEBUG: bool = True
 # 締め日
 START_DAY = 16
 
+PROJECT_FOLDER = Path(__file__).parent.parent.parent
 # ファイルパスの設定
-DATABASE_PATH = "nfc_records.db"  # データベースファイルのパス
-EMPLOYEE_LIST = "employee_list.txt"  # 従業員名、対応するテンプレート
-CSV_PATH = "csv"  # csvファイルの出力フォルダ(このフォルダを親フォルダとしてYYYY-MMの子フォルダを作成します)
-TEMPLATE_PATH = "template.xlsm"
-LOG_FILE_PATH: str = "application.log"  # ログファイルの設定(未実装)
+DATABASE_PATH = PROJECT_FOLDER / "nfc_records.db"  # データベースファイルのパス
+EMPLOYEE_LIST = PROJECT_FOLDER / "user_config/employee_list.txt"  # 従業員名、対応するテンプレート
+CSV_PATH = PROJECT_FOLDER / "csv"  # csvファイルの出力フォルダ(このフォルダを親フォルダとしてYYYY-MMの子フォルダを作成します)
+TEMPLATE_PATH = PROJECT_FOLDER / "user_config/template.xlsm"
+LOG_FILE_PATH: str = PROJECT_FOLDER / "application.log"  # ログファイルの設定(未実装)
 
 # GUIの設定
 WINDOW_SIZE: tuple[int, int] = (800, 400)  # ウィンドウのサイズ
@@ -34,12 +36,10 @@ TIME_OUT: int = 10
 
 
 class MessageTexts:
-
     waiting = "ICカードをスキャンしてください"
 
     @staticmethod
     def greeting(name: str, punch_time: str, record_type):
-
         greet_punch_in = "おはようございます。"
         greet_punch_out = "お疲れ様でした。"
         if record_type.value == "出勤":

@@ -1,0 +1,26 @@
+debug = true
+start_day = 16
+timeout = 10
+
+[paths]
+database = "/Users/ainem/Desktop/python/pasori_timecard/config/nfc_records.db"
+employee_list = "/Users/ainem/Desktop/python/pasori_timecard/config/employee_list.txt"
+csv_dir = "/Users/ainem/Desktop/python/pasori_timecard/config/csv"
+template = "/Users/ainem/Desktop/python/pasori_timecard/config/template.xlsm"
+log_file = "/Users/ainem/Desktop/python/pasori_timecard/config/logs/application.log"
+
+[gui]
+window_size = [ 800, 400,]
+history_days = 7
+
+[styles]
+waiting = "font-size: 32px; font-weight: bold;"
+time_display = "font-size: 72px; font-weight: bold; color: #333333;"
+bg_punch_in = "font-size: 24px; font-weight:bold; background-color: #FFCC99; color: black;"
+bg_punch_out = "font-size: 24px; font-weight:bold; background-color: #2C3E50; color: white;"
+
+[messages]
+waiting = "ICカードをスキャンしてください"
+greet_punch_in = "おはようございます。"
+greet_punch_out = "お疲れ様でした。"
+punching_template = "{seconds}秒後に自動で記録します"

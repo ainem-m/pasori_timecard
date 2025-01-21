@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QListWidget,
     QMessageBox,
-    QLabel,
     QComboBox,
 )
 import config  # config.py に EMPLOYEE_LIST を設定

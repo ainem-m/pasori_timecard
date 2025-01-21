@@ -1,7 +1,8 @@
 __pycache__
 .mypy_cache
+.ruff_cache
 csv
-venv
+.venv
 application.log
 mypy.ini
 nfc_records.db
