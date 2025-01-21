@@ -14,7 +14,8 @@ TEMPLATE_PATH = "template.xlsm"
 LOG_FILE_PATH: str = "application.log"  # ログファイルの設定(未実装)
 
 # GUIの設定
-WINDOW_SIZE: tuple[int, int] = (480, 400)  # ウィンドウのサイズ
+WINDOW_SIZE: tuple[int, int] = (800, 400)  # ウィンドウのサイズ
+HISTORY_DAYS = 7
 
 
 class StyleSheets:

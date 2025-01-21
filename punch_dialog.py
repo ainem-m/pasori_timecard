@@ -2,14 +2,17 @@ from PySide6.QtWidgets import (
     QDialog,
     QLabel,
     QVBoxLayout,
+    QHBoxLayout,
     QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
 )
 from PySide6.QtCore import QTimer
 import db_alchemy
-from config import TIME_OUT, WINDOW_SIZE, MessageTexts, StyleSheets
-from datetime import datetime
+from config import TIME_OUT, WINDOW_SIZE, MessageTexts, StyleSheets, HISTORY_DAYS
 import time_util
 from typing import Optional
+import to_csv
 
 
 class PunchDialog(QDialog):
@@ -25,7 +28,7 @@ class PunchDialog(QDialog):
     ダイアログは一定時間表示され、トグルボタンが押された場合はタイマーがリセットされる。ダイアログが消えるときに、出勤/退勤の情報がデータベースに記録される。
     """
 
-    def __init__(self, ic_card_id: str, punch_time: datetime, *args, **kwargs):
+    def __init__(self, ic_card_id: str, punch_time, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
@@ -48,11 +51,23 @@ class PunchDialog(QDialog):
         self.countdown_label = QLabel(MessageTexts.punching(self.timeout))
         self.toggle_button = QPushButton("状態を変更")
         self.toggle_button.setStyleSheet("font-size: 24px;")
-        # self.toggle_button.setFixedSize(200, 100)
         self.toggle_button.clicked.connect(self.toggle_status)
 
-        self.ok_button = QPushButton("キャンセル")
-        self.ok_button.clicked.connect(self.reject)  # OKを押したらダイアログを閉じる
+        self.cancel_button = QPushButton("キャンセル")
+        self.cancel_button.clicked.connect(
+            self.reject
+        )  # キャンセルを押したらダイアログを閉じる
+        self.ok_button = QPushButton("OK")
+        self.ok_button.setStyleSheet(
+            """
+                QPushButton {
+                    font-weight: bold;
+                    border: 3px solid white;
+                    padding: 10px;
+                }
+            """
+        )
+        self.ok_button.clicked.connect(self.accept)  # OKを押したらダイアログを閉じる
         self.status_label.setText(
             MessageTexts.greeting(
                 self.employee.name,
@@ -60,15 +75,58 @@ class PunchDialog(QDialog):
                 self.current_status,
             )
         )
+        start_date, end_date = (
+            time_util.days_ago(HISTORY_DAYS),
+            time_util.current_time(),
+        )
+        period = time_util.get_date_list(
+            start_date, end_date + time_util.ONE_DAY, to_csv.TIME_FORMAT
+        )
+        records = db_alchemy.AttendanceRecord.get_employee_records(
+            employee_id=self.employee.employee_id, start_date=start_date
+        )
+        data = to_csv.make_data(records, period)
+        # 右側の新しいテキスト
+        self.info_label = QTableWidget(HISTORY_DAYS + 1, len(to_csv.BLANK_LINE))
+        self.info_label.setHorizontalHeaderLabels(to_csv.HEADER)
+        self.info_label.setStyleSheet(
+            """
+            QTableWidget { font-size: 10pt; } 
+            QHeaderView::section { font-size: 10pt; }
+        """
+        )
+        for i, row in enumerate(data):
+            for j, value in enumerate(row):
+                self.info_label.setItem(i, j, QTableWidgetItem(value))
+        self.info_label.verticalHeader().setVisible(False)
+        self.info_label.resizeColumnsToContents()
+        # メインレイアウト（横方向）
+        main_layout = QHBoxLayout()
 
-        # レイアウトの設定
-        layout = QVBoxLayout()
-        layout.addWidget(self.status_label)
-        layout.addWidget(self.countdown_label)
-        layout.addWidget(self.toggle_button)
-        layout.setSpacing(50)
-        layout.addWidget(self.ok_button)
-        self.setLayout(layout)
+        # 右側のレイアウト（タイムカード）
+        text_layout = QVBoxLayout()
+        text_layout.addWidget(self.info_label)
+
+        # 左側のレイアウト
+        left_layout = QVBoxLayout()
+        left_layout.addWidget(self.status_label)
+        left_layout.addWidget(self.countdown_label)
+        left_layout.addWidget(self.toggle_button)
+        left_layout.setSpacing(50)
+
+        # ボタン用のレイアウト（横方向）
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addWidget(self.ok_button)
+
+        # 左側のレイアウトにボタンを追加
+        left_layout.addLayout(button_layout)
+
+        # ✅ 左右のレイアウトをメインレイアウトに追加（順番を逆に）
+        main_layout.addLayout(left_layout)  # 先に元のUI（左側）
+        main_layout.addLayout(text_layout)  # 次に文章（右側）
+
+        self.setLayout(main_layout)
         if self.current_status == db_alchemy.RecordType.IN:
             self.setStyleSheet(StyleSheets.bg_punch_in)
         elif self.current_status == db_alchemy.RecordType.OUT:
@@ -81,7 +139,7 @@ class PunchDialog(QDialog):
             return db_alchemy.RecordType.IN
 
         # 最後の打刻がの日付
-        last_punch_date: datetime = self.last_record.record_time
+        last_punch_date = self.last_record.record_time
 
         print("打刻の日付", last_punch_date.date(), self.punch_time.date())
         if last_punch_date.date() < self.punch_time.date():
