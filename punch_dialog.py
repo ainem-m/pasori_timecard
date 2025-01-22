@@ -13,6 +13,7 @@ from config import TIME_OUT, WINDOW_SIZE, MessageTexts, StyleSheets, HISTORY_DAY
 import time_util
 from typing import Optional
 import to_csv
+from long_press_button import LongPressButton  # LongPressButtonのインポート
 
 
 class PunchDialog(QDialog):
@@ -29,7 +30,6 @@ class PunchDialog(QDialog):
     """
 
     def __init__(self, ic_card_id: str, punch_time, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.timeout = TIME_OUT
@@ -54,10 +54,12 @@ class PunchDialog(QDialog):
         self.toggle_button.clicked.connect(self.toggle_status)
 
         self.cancel_button = QPushButton("キャンセル")
-        self.cancel_button.clicked.connect(
-            self.reject
-        )  # キャンセルを押したらダイアログを閉じる
-        self.ok_button = QPushButton("OK")
+        self.cancel_button.clicked.connect(self.reject)
+
+        # LongPressButtonに変更
+        self.ok_button = LongPressButton(
+            "OK", self, long_press_callback=self.on_ok_button_long_press
+        )
         self.ok_button.setStyleSheet(
             """
                 QPushButton {
@@ -67,7 +69,7 @@ class PunchDialog(QDialog):
                 }
             """
         )
-        self.ok_button.clicked.connect(self.accept)  # OKを押したらダイアログを閉じる
+
         self.status_label.setText(
             MessageTexts.greeting(
                 self.employee.name,
@@ -131,6 +133,11 @@ class PunchDialog(QDialog):
             self.setStyleSheet(StyleSheets.bg_punch_in)
         elif self.current_status == db_alchemy.RecordType.OUT:
             self.setStyleSheet(StyleSheets.bg_punch_out)
+
+    def on_ok_button_long_press(self, button):
+        """LongPressButtonが長押しされたときの処理"""
+        print("OK Button Long Pressed")
+        self.accept()
 
     def determine_status(self) -> db_alchemy.RecordType:
         """本日初めての打刻かどうかを判断する"""
