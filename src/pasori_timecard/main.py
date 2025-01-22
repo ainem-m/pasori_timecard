@@ -3,7 +3,9 @@ from main_window import MainWindow
 from loguru import logger
 import config
 from pathlib import Path
-from auto_close_window import AutoCloseMessageBox
+import sys
+
+sys.path.append("src")
 
 logger.add(config.LOG_FILE_PATH, level="TRACE", rotation="10 MB")
 

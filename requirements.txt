@@ -11,3 +11,4 @@ pytz==2024.1
 shiboken6==6.7.2
 SQLAlchemy==2.0.34
 tomli==2.0.1
+openpyxl==3.1.5
