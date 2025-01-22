@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 import random
-from db_alchemy import Employee, AttendanceRecord, RecordType
+from pasori_timecard.core.db_alchemy import Employee, AttendanceRecord, RecordType
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from config import DATABASE_PATH
+from pasori_timecard.config import DATABASE_PATH
 
 # SQLiteエンジンを作成し、データベースに接続
 engine = create_engine(f"sqlite:///{DATABASE_PATH}", echo=True)

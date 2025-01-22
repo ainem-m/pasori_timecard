@@ -3,12 +3,12 @@ from PySide6.QtCore import QTimer, Slot
 from PySide6.QtWidgets import QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton
 
 from config import StyleSheets, WINDOW_SIZE, MessageTexts, DEBUG
-from auto_close_window import AutoCloseMessageBox
-from punch_dialog import PunchDialog
-from nfc_reader_QThread import NfcReader, NfcReaderMock
-import db_alchemy
-import time_util
-from register_dialog import EmployeeSelectionDialog
+from pasori_timecard.custom_widgets.auto_close_window import AutoCloseMessageBox
+from pasori_timecard.app_window.punch_dialog import PunchDialog
+from pasori_timecard.core.nfc_reader_QThread import NfcReader, NfcReaderMock
+from pasori_timecard.core import db_alchemy
+from pasori_timecard.core import time_util
+from pasori_timecard.app_window.register_dialog import EmployeeSelectionDialog
 
 
 class TimeDisplay(QLabel):

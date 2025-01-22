@@ -1,6 +1,6 @@
 import csv
-from db_alchemy import Employee, AttendanceRecord
-import time_util
+from pasori_timecard.core.db_alchemy import Employee, AttendanceRecord
+from pasori_timecard.core import time_util
 from collections import defaultdict
 import config
 from pathlib import Path

@@ -8,3 +8,4 @@ mypy.ini
 nfc_records.db
 employee_list.txt
 .DS_Store
+config.toml

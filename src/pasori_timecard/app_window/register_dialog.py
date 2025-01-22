@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
 )
 from PySide6.QtCore import Qt, Signal
-from db_alchemy import Employee
+from pasori_timecard.core.db_alchemy import Employee
 from config import WINDOW_SIZE
 
 

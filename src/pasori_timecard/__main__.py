@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QApplication
-from main_window import MainWindow
+from pasori_timecard.app_window.main_window import MainWindow
 from loguru import logger
 import config
 from pathlib import Path
