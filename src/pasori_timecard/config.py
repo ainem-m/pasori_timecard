@@ -30,16 +30,14 @@ class StyleSheets:
 
 
 # 自動で閉じるウィンドウのタイマー設定
-TIME_OUT: int = 10
+TIME_OUT: int = 30
 
 
 class MessageTexts:
-
     waiting = "ICカードをスキャンしてください"
 
     @staticmethod
     def greeting(name: str, punch_time: str, record_type):
-
         greet_punch_in = "おはようございます。"
         greet_punch_out = "お疲れ様でした。"
         if record_type.value == "出勤":

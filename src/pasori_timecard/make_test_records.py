@@ -27,7 +27,7 @@ def insert_random_attendance_records(num_records: int = 20):
 
             # ランダムな日付を生成 (過去30日間)
             days_ago = random.randint(1, 30)
-            punch_in_time = datetime.now() - timedelta(days=days_ago)
+            punch_in_time = time_util.current_time() - timedelta(days=days_ago)
 
             # 出勤時間はランダムな朝9時〜11時
             punch_in_time = punch_in_time.replace(

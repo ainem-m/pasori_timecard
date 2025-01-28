@@ -38,6 +38,7 @@ class PunchDialog(QDialog):
         self.punch_time = punch_time
         self.last_record = db_alchemy.AttendanceRecord.get_last_record(self.employee)
         self.current_status: db_alchemy.RecordType = self.determine_status()
+        self.accepted = False
 
         self._gui_init()
         self._init_timer()
@@ -136,7 +137,7 @@ class PunchDialog(QDialog):
 
     def on_ok_button_long_press(self, button):
         """LongPressButtonが長押しされたときの処理"""
-        print("OK Button Long Pressed")
+        self.timer.stop()
         self.accept()
 
     def determine_status(self) -> db_alchemy.RecordType:
@@ -174,14 +175,21 @@ class PunchDialog(QDialog):
     def countdown(self):
         self.timeout -= 1
         self.countdown_label.setText(MessageTexts.punching(self.timeout))
-        if self.timeout <= 0:
+        if self.timeout <= 0 and not self.accepted:
+            self.accepted = True
             self.accept()
 
+    def reject(self):
+        self.timer.stop()
+        super().reject()
+
     def accept(self):
-        # 打刻処理をしてウィンドウを閉じる
-        db_alchemy.AttendanceRecord.punch(
-            self.employee.employee_id, self.current_status, self.punch_time
-        )
+        if not self.accepted:
+            # 打刻処理をしてウィンドウを閉じる
+            db_alchemy.AttendanceRecord.punch(
+                self.employee.employee_id, self.current_status, self.punch_time
+            )
+        self.timer.stop()
         super().accept()
 
     def toggle_status(self):

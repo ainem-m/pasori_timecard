@@ -6,9 +6,9 @@ from sqlalchemy.orm import (
     relationship,
     sessionmaker,
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 import enum
-from config import DATABASE_PATH, DEBUG, EMPLOYEE_LIST
+from config import DATABASE_PATH, EMPLOYEE_LIST, TIME_OUT
 from typing import Any, Optional
 import time_util
 import os
@@ -227,16 +227,29 @@ class AttendanceRecord(Base):
         cls: Any, employee_id: int, record_type: RecordType, punch_time: datetime
     ):
         with Session() as session:
-            new_record = cls(
-                employee_id=employee_id,
-                record_type=record_type.name,
-                record_time=punch_time,
-                created_at=punch_time,
-                updated_at=punch_time,
+            last_record = (
+                session.query(cls)
+                .filter_by(employee_id=employee_id)
+                .order_by(desc(cls.record_time))
+                .first()
             )
-            session.add(new_record)
-            session.commit()
-            print(f"記録しました{new_record}")
+            assert punch_time.tzinfo
+            last_time = time_util.TZ.localize(last_record.record_time)
+
+            if last_record and punch_time - last_time >= timedelta(
+                seconds=TIME_OUT * 2
+            ):
+                print("test")
+                new_record = cls(
+                    employee_id=employee_id,
+                    record_type=record_type.name,
+                    record_time=punch_time,
+                    created_at=punch_time,
+                    updated_at=punch_time,
+                )
+                session.add(new_record)
+                session.commit()
+                print(f"記録しました{new_record}")
 
     @classmethod
     def get_employee_records(
