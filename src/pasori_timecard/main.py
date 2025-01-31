@@ -1,10 +1,14 @@
+from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from loguru import logger
-from pasori_timecard import config, main_window
-from pathlib import Path
 import sys
+import os
 
-sys.path.append("src")
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..", "src"))
+)
+from pasori_timecard import config, main_window
+
 
 logger.add(config.LOG_FILE_PATH, level="TRACE", rotation="10 MB")
 
