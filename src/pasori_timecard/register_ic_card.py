@@ -1,5 +1,4 @@
-import db_alchemy
-from nfc_reader_QThread import NfcReader
+from pasori_timecard import db_alchemy, nfc_reader_QThread
 import nfc
 from typing import Optional
 
@@ -59,6 +58,8 @@ def register(ic_card_id: str):
 
 
 if __name__ == "__main__":
-    nfc_reader = NfcReader(clf=nfc.ContactlessFrontend("usb"), on_connect=on_connect)
+    nfc_reader = nfc_reader_QThread.NfcReader(
+        clf=nfc.ContactlessFrontend("usb"), on_connect=on_connect
+    )
     print("ICカードをリーダーに近づけてください")
     nfc_reader.run()

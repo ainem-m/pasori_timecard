@@ -6,8 +6,7 @@ from config import StyleSheets, WINDOW_SIZE, MessageTexts, DEBUG
 from auto_close_window import AutoCloseMessageBox
 from punch_dialog import PunchDialog
 from nfc_reader_QThread import NfcReader, NfcReaderMock
-import db_alchemy
-import time_util
+from pasori_timecard import db_alchemy, time_util
 from register_dialog import EmployeeSelectionDialog
 
 

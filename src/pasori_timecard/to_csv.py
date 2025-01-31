@@ -1,14 +1,11 @@
 import csv
-from db_alchemy import Employee, AttendanceRecord
-import time_util
+from pasori_timecard import db_alchemy, time_util, config
 from collections import defaultdict
-import config
-from typing import Optional, Union
 from pathlib import Path
 import sys
 
 
-TIME_FORMAT = "%Y/%m/%d(%a)"
+DATE_FORMAT = "%Y/%m/%d(%a)"
 BLANK = "-"  # 使用していないところの時刻表示
 LOST = "##:##"  # 押し忘れの時刻表示
 HEADER = [
@@ -63,7 +60,7 @@ def make_data(records, period):
     # 勤怠記録を日付ごとに整理
     for record in records:
         date_ = record.record_time.date()
-        date = date_.strftime(TIME_FORMAT)
+        date = date_.strftime(DATE_FORMAT)
         record_type = record.record_type
         record_time = record.record_time
         daily_attendance[date].append((record_type, record_time))
@@ -115,14 +112,14 @@ def export_employee_attendance_to_csv(year: int, month: int):
     # 調べる期間のdatetimeのリスト
     # 前の月の締め日の次の日とその月の締め日
     start_date, end_date = time_util.get_billing_period(year, month, config.START_DAY)
-    period = time_util.get_date_list(start_date, end_date, TIME_FORMAT)
+    period = time_util.get_date_list(start_date, end_date, DATE_FORMAT)
     """従業員ごとの勤怠記録をCSVに出力する"""
     # 全従業員を取得
-    employees = Employee.get_all()
+    employees = db_alchemy.Employee.get_all()
 
     for employee in employees:
         # 従業員の全勤怠記録を取得、ここで昇順になっていることが保証される
-        records = AttendanceRecord.get_employee_records(
+        records = db_alchemy.AttendanceRecord.get_employee_records(
             employee_id=employee.employee_id,
             start_date=start_date,
             end_date=end_date + time_util.ONE_DAY,
@@ -151,6 +148,7 @@ def export_employee_attendance_to_csv(year: int, month: int):
 
 
 if __name__ == "__main__":
+    print("to_csv実行: ", time_util.datetime_to_string(time_util.current_time()))
     input_str: str
     if len(sys.argv) != 2:
         input_str = input("年と月を入力 例: 2024/08, 2024/8, 24/08, 24/8 ->")

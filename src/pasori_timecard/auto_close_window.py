@@ -1,6 +1,6 @@
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
-from config import TIME_OUT
+from pasori_timecard import config
 import time
 
 
@@ -10,10 +10,9 @@ class AutoCloseMessageBox(QMessageBox):
     """
 
     def __init__(self, title="", text="", *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         self.text = text
-        self.timeout = TIME_OUT
+        self.timeout = config.TIME_OUT
         self.title = title
         self.setText(self.defaulttext())
         self.setWindowTitle(self.title)

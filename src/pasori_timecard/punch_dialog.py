@@ -8,12 +8,8 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
 )
 from PySide6.QtCore import QTimer
-import db_alchemy
-from config import TIME_OUT, WINDOW_SIZE, MessageTexts, StyleSheets, HISTORY_DAYS
-import time_util
+from pasori_timecard import db_alchemy, time_util, to_csv, config, long_press_button
 from typing import Optional
-import to_csv
-from long_press_button import LongPressButton  # LongPressButtonのインポート
 
 
 class PunchDialog(QDialog):
@@ -32,7 +28,7 @@ class PunchDialog(QDialog):
     def __init__(self, ic_card_id: str, punch_time, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.timeout = TIME_OUT
+        self.timeout = config.TIME_OUT
         self.employee = db_alchemy.IC_Card.find_employee_by_ic_card_number(ic_card_id)
         assert self.employee is not None
         self.punch_time = punch_time
@@ -45,11 +41,11 @@ class PunchDialog(QDialog):
 
     def _gui_init(self):
         self.setWindowTitle("打刻確認")
-        self.resize(*WINDOW_SIZE)
+        self.resize(*config.WINDOW_SIZE)
 
         # ラベルとボタンの作成
         self.status_label = QLabel("打刻確認")
-        self.countdown_label = QLabel(MessageTexts.punching(self.timeout))
+        self.countdown_label = QLabel(config.MessageTexts.punching(self.timeout))
         self.toggle_button = QPushButton("状態を変更")
         self.toggle_button.setStyleSheet("font-size: 24px;")
         self.toggle_button.clicked.connect(self.toggle_status)
@@ -58,7 +54,7 @@ class PunchDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
         # LongPressButtonに変更
-        self.ok_button = LongPressButton(
+        self.ok_button = long_press_button.LongPressButton(
             "OK", self, long_press_callback=self.on_ok_button_long_press
         )
         self.ok_button.setStyleSheet(
@@ -72,25 +68,25 @@ class PunchDialog(QDialog):
         )
 
         self.status_label.setText(
-            MessageTexts.greeting(
+            config.MessageTexts.greeting(
                 self.employee.name,
                 time_util.datetime_to_string(self.punch_time),
                 self.current_status,
             )
         )
         start_date, end_date = (
-            time_util.days_ago(HISTORY_DAYS),
+            time_util.days_ago(config.HISTORY_DAYS),
             time_util.current_time(),
         )
         period = time_util.get_date_list(
-            start_date, end_date + time_util.ONE_DAY, to_csv.TIME_FORMAT
+            start_date, end_date + time_util.ONE_DAY, to_csv.DATE_FORMAT
         )
         records = db_alchemy.AttendanceRecord.get_employee_records(
             employee_id=self.employee.employee_id, start_date=start_date
         )
         data = to_csv.make_data(records, period)
         # 右側の新しいテキスト
-        self.info_label = QTableWidget(HISTORY_DAYS + 1, len(to_csv.BLANK_LINE))
+        self.info_label = QTableWidget(config.HISTORY_DAYS + 1, len(to_csv.BLANK_LINE))
         self.info_label.setHorizontalHeaderLabels(to_csv.HEADER)
         self.info_label.setStyleSheet(
             """
@@ -131,9 +127,9 @@ class PunchDialog(QDialog):
 
         self.setLayout(main_layout)
         if self.current_status == db_alchemy.RecordType.IN:
-            self.setStyleSheet(StyleSheets.bg_punch_in)
+            self.setStyleSheet(config.StyleSheets.bg_punch_in)
         elif self.current_status == db_alchemy.RecordType.OUT:
-            self.setStyleSheet(StyleSheets.bg_punch_out)
+            self.setStyleSheet(config.StyleSheets.bg_punch_out)
 
     def on_ok_button_long_press(self, button):
         """LongPressButtonが長押しされたときの処理"""
@@ -174,10 +170,10 @@ class PunchDialog(QDialog):
 
     def countdown(self):
         self.timeout -= 1
-        self.countdown_label.setText(MessageTexts.punching(self.timeout))
+        self.countdown_label.setText(config.MessageTexts.punching(self.timeout))
         if self.timeout <= 0 and not self.accepted:
-            self.accepted = True
             self.accept()
+            self.accepted = True  # この行にはたどり着かないはず
 
     def reject(self):
         self.timer.stop()
@@ -202,14 +198,14 @@ class PunchDialog(QDialog):
             else db_alchemy.RecordType.OUT
         )
         if self.current_status == db_alchemy.RecordType.IN:
-            self.setStyleSheet(StyleSheets.bg_punch_in)
+            self.setStyleSheet(config.StyleSheets.bg_punch_in)
         elif self.current_status == db_alchemy.RecordType.OUT:
-            self.setStyleSheet(StyleSheets.bg_punch_out)
+            self.setStyleSheet(config.StyleSheets.bg_punch_out)
 
-        self.timeout = TIME_OUT
-        self.countdown_label.setText(MessageTexts.punching(self.timeout))
+        self.timeout = config.TIME_OUT
+        self.countdown_label.setText(config.MessageTexts.punching(self.timeout))
         self.status_label.setText(
-            MessageTexts.greeting(
+            config.MessageTexts.greeting(
                 self.employee.name,
                 time_util.datetime_to_string(self.punch_time),
                 self.current_status,

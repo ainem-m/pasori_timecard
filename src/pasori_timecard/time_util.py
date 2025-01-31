@@ -84,17 +84,17 @@ def get_billing_period(
     """
     # 1月の場合、前年の12月から計算
     if month == 1:
-        start_date = datetime(year=year - 1, month=12, day=start_day) + ONE_DAY
-        end_date = datetime(year=year, month=1, day=start_day)
+        start_date = datetime(year=year - 1, month=12, day=start_day)
+        end_date = datetime(year=year, month=1, day=start_day) - ONE_DAY
     else:
-        start_date = datetime(year=year, month=month - 1, day=start_day) + ONE_DAY
-        end_date = datetime(year=year, month=month, day=start_day)
+        start_date = datetime(year=year, month=month - 1, day=start_day)
+        end_date = datetime(year=year, month=month, day=start_day) - ONE_DAY
 
     return start_date, end_date
 
 
 def get_date_list(
-    start_date: datetime, end_date: datetime, time_format: str = "%Y-%m-%d"
+    start_date: datetime, end_date: datetime, time_format: str = TIME_FORMAT
 ) -> list[str]:
     """
     指定した開始日と終了日の間の日付リストを作成する。
@@ -124,7 +124,7 @@ def days_ago(days):
 if __name__ == "__main__":
     # テスト
     year = 2025
-    month = 1
-    start, end = get_billing_period(year, month, 15)
+    month = 2
+    start, end = get_billing_period(year, month, 16)
     print(get_date_list(start, end))
     print(days_ago(7))

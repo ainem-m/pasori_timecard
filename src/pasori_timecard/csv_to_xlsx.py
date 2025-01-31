@@ -3,7 +3,6 @@ import json
 from openpyxl import load_workbook
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.formatting.rule import FormulaRule
 from openpyxl.worksheet.cell_range import CellRange
 from pathlib import Path
 import config
@@ -250,6 +249,7 @@ def csv_to_excel(
 
 # メイン処理
 if __name__ == "__main__":
+    print("csv_to_xlsx実行: ", time_util.current_time())
     input_str: str
     if len(sys.argv) != 2:
         input_str = input("年と月を入力 例: 2024/08, 2024/8, 24/08, 24/8 ->")

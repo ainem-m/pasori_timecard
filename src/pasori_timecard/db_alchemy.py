@@ -8,14 +8,13 @@ from sqlalchemy.orm import (
 )
 from datetime import datetime, timedelta
 import enum
-from config import DATABASE_PATH, EMPLOYEE_LIST, TIME_OUT
+from pasori_timecard import config, time_util
 from typing import Any, Optional
-import time_util
 import os
 import json
 
 
-engine = create_engine(f"sqlite:///{DATABASE_PATH}", echo=False)
+engine = create_engine(f"sqlite:///{config.DATABASE_PATH}", echo=config.DEBUG)
 Session = sessionmaker(bind=engine)
 
 
@@ -237,7 +236,7 @@ class AttendanceRecord(Base):
             last_time = time_util.TZ.localize(last_record.record_time)
 
             if last_record and punch_time - last_time >= timedelta(
-                seconds=TIME_OUT * 2
+                seconds=config.TIME_OUT * 2
             ):
                 print("test")
                 new_record = cls(
@@ -286,13 +285,13 @@ if __name__ == "__main__":
     Base.metadata.create_all(engine)
 
     # EMPLOYEE_LISTに書かれている従業員名が登録されていなかったら登録する
-    if os.path.exists(EMPLOYEE_LIST):
+    if os.path.exists(config.EMPLOYEE_LIST):
         # データベースに既存の従業員名リストを取得
         employee_names = {x.name for x in Employee.get_all()}
         print(employee_names)
 
         # JSONファイルからデータを読み込む
-        with open(EMPLOYEE_LIST, "r+", encoding="utf-8") as file:
+        with open(config.EMPLOYEE_LIST, "r+", encoding="utf-8") as file:
             existing_data = json.load(file)  # 現在のデータを読み込む
 
             # 従業員名がまだ登録されていない場合はデータベースに追加

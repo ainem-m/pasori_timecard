@@ -1,7 +1,6 @@
 from PySide6.QtWidgets import QApplication
-from main_window import MainWindow
 from loguru import logger
-import config
+from pasori_timecard import config, main_window
 from pathlib import Path
 import sys
 
@@ -13,7 +12,7 @@ logger.add(config.LOG_FILE_PATH, level="TRACE", rotation="10 MB")
 @logger.catch
 def main():
     app = QApplication([])
-    window = MainWindow()
+    window = main_window.MainWindow()
     window.show()
     app.exec()
 

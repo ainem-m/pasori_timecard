@@ -11,27 +11,28 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
 )
 from PySide6.QtCore import Qt, Signal
-from db_alchemy import Employee
-from config import WINDOW_SIZE
+from pasori_timecard import db_alchemy, config
 
 
 # メインのQDialogクラス
 class EmployeeSelectionDialog(QDialog):
-    employee_selected = Signal(Employee)  # 従業員が選択されたときに発行されるシグナル
+    employee_selected = Signal(
+        db_alchemy.Employee
+    )  # 従業員が選択されたときに発行されるシグナル
 
     def __init__(self):
         super().__init__()
 
         self.current_page = 0
         self.employees_per_page = 6  # 1ページに表示する従業員の数
-        self.employee_list = Employee.get_all()  # 従業員リストを取得
+        self.employee_list = db_alchemy.Employee.get_all()  # 従業員リストを取得
         self.total_pages = (len(self.employee_list) - 1) // self.employees_per_page + 1
 
         self.gui_init()
 
     def gui_init(self):
         self.setWindowTitle("従業員選択")
-        self.resize(*WINDOW_SIZE)
+        self.resize(*config.WINDOW_SIZE)
         layout = QVBoxLayout(self)
         text = QLabel("登録されていないカードです。紐づける従業員を選択してください")
         layout.addWidget(text)
